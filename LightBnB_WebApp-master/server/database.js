@@ -25,10 +25,6 @@ const getUserWithEmail = function(email) {
   return pool.query(queryString, values)
     .then(res => {
       return res.rows[0] ? res.rows[0] : null;
-    })
-    .catch((err) => {
-      console.log(err.message);
-      return err;
     });
 }
 exports.getUserWithEmail = getUserWithEmail;
@@ -47,12 +43,7 @@ const getUserWithId = function(id) {
   const values = [id]
   return pool.query(queryString, values)
     .then(res => {
-      console.log(res.rows[0] ? res.rows[0] : null);
       return res.rows[0] ? res.rows[0] : null;
-    })
-    .catch((err) => {
-      console.log(err.message);
-      return err;
     });
 }
 exports.getUserWithId = getUserWithId;
@@ -76,12 +67,7 @@ const addUser = function(user) {
   const values = [user.name, user.email, user.password]
   return pool.query(queryString, values)
     .then(res => {
-      console.log(res.rows[0]);
       return res.rows[0];
-    })
-    .catch((err) => {
-      console.log(err.message);
-      return err;
     });
 }
 exports.addUser = addUser;
@@ -94,7 +80,23 @@ exports.addUser = addUser;
  * @return {Promise<[{}]>} A promise to the reservations.
  */
 const getAllReservations = function(guest_id, limit = 10) {
-  return getAllProperties(null, 2);
+  const queryString = `
+    SELECT properties.*, reservations.*, x.average_rating
+    FROM reservations
+    JOIN properties ON properties.id = reservations.property_id
+    JOIN (SELECT property_id, AVG(rating) as average_rating
+      FROM property_reviews
+    GROUP BY property_id) x ON x.property_id = properties.id
+    WHERE guest_id = $1 AND end_date < now()::date
+    ORDER BY start_date
+    LIMIT $2;
+    `;
+  const values = [guest_id, limit]
+  return pool.query(queryString, values)
+    .then(res => {
+      console.log(res.rows);
+      return res.rows ? res.rows : null;
+    });
 }
 exports.getAllReservations = getAllReservations;
 
@@ -107,17 +109,17 @@ exports.getAllReservations = getAllReservations;
  * @return {Promise<[{}]>}  A promise to the properties.
  */
 const getAllProperties = (options, limit = 10) => {
+  console.log(options);
   const queryString = `
-    SELECT *
-    FROM properties
-    LIMIT $1;
+  SELECT properties.*, avg(property_reviews.rating) as average_rating
+  FROM properties
+  JOIN property_reviews ON properties.id = property_id
+  GROUP BY properties.id
+  LIMIT $1;
     `;
   const values = [limit]
   return pool.query(queryString, values)
-    .then(res => res.rows)
-    .catch((err) => {
-      console.log(err.message);
-    });
+    .then(res => res.rows);
 }
 exports.getAllProperties = getAllProperties;
 
