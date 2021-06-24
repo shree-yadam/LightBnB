@@ -172,9 +172,79 @@ exports.getAllProperties = getAllProperties;
  * @return {Promise<{}>} A promise to the property.
  */
 const addProperty = function(property) {
-  const propertyId = Object.keys(properties).length + 1;
-  property.id = propertyId;
-  properties[propertyId] = property;
-  return Promise.resolve(property);
+  let queryString = `
+  INSERT INTO properties
+  (
+  `;
+  const queryParams = [];
+  if (property.owner_id) {
+    queryParams.push(property.owner_id);
+    queryString += `owner_id, `
+  }
+  if (property.title) {
+    queryParams.push(property.title);
+    queryString += `title, `
+  }
+  if (property.description) {
+    queryParams.push(property.description);
+    queryString += `description, `
+  }
+  if (property.thumbnail_photo_url) {
+    queryParams.push(property.thumbnail_photo_url);
+    queryString += `thumbnail_photo_url, `
+  }
+  if (property.cover_photo_url) {
+    queryParams.push(property.cover_photo_url);
+    queryString += `cover_photo_url, `
+  }
+  if (property.cost_per_night) {
+    queryParams.push(property.cost_per_night);
+    queryString += `cost_per_night, `
+  }
+  if (property.street) {
+    queryParams.push(property.street);
+    queryString += `street, `
+  }
+  if (property.city) {
+    queryParams.push(property.city);
+    queryString += `city, `
+  }
+  if (property.province) {
+    queryParams.push(property.province);
+    queryString += `province, `
+  }
+  if (property.post_code) {
+    queryParams.push(property.post_code);
+    queryString += `post_code, `
+  }
+  if (property.country) {
+    queryParams.push(property.country);
+    queryString += `country, `
+  }
+  if (property.parking_spaces) {
+    queryParams.push(property.parking_spaces);
+    queryString += `parking_spaces, `
+  }
+  if (property.number_of_bathrooms) {
+    queryParams.push(property.number_of_bathrooms);
+    queryString += `number_of_bathrooms, `
+  }
+  if (property.number_of_bedrooms) {
+    queryParams.push(property.number_of_bedrooms);
+    queryString += `number_of_bedrooms, `
+  }
+
+  queryString = queryString.substr(0, queryString.length - 2);
+  queryString += `) 
+  VALUES (
+  `;
+  for (let i = 1; i <= queryParams.length; i++) {
+    queryString += `$${i} ,`;
+  }
+  queryString = queryString.substr(0, queryString.length - 2);
+  queryString += `)
+  RETURNING *;`;
+  return pool.query(queryString, queryParams)
+    .then(res => res.rows[0]);
 }
 exports.addProperty = addProperty;
