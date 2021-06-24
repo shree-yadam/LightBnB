@@ -21,11 +21,9 @@ const getUserWithEmail = function(email) {
     FROM users
     WHERE email = $1;
     `;
-  const values = [email]
-  return pool.query(queryString, values)
-    .then(res => {
-      return res.rows[0] ? res.rows[0] : null;
-    });
+  const queryParams = [email];
+  return pool.query(queryString, queryParams)
+    .then(res => res.rows[0]);
 }
 exports.getUserWithEmail = getUserWithEmail;
 
@@ -40,11 +38,9 @@ const getUserWithId = function(id) {
     FROM users
     WHERE id = $1;
     `;
-  const values = [id]
-  return pool.query(queryString, values)
-    .then(res => {
-      return res.rows[0] ? res.rows[0] : null;
-    });
+  const queryParams = [id];
+  return pool.query(queryString, queryParams)
+    .then(res => res.rows[0]);
 }
 exports.getUserWithId = getUserWithId;
 
@@ -55,20 +51,15 @@ exports.getUserWithId = getUserWithId;
  * @return {Promise<{}>} A promise to the user.
  */
 const addUser = function(user) {
-  // const userId = Object.keys(users).length + 1;
-  // user.id = userId;
-  // users[userId] = user;
-  // return Promise.resolve(user);
+  ;
   const queryString = `
     INSERT INTO users (name, email, password)
     VALUES ($1, $2, $3)
     RETURNING *;
     `;
-  const values = [user.name, user.email, user.password]
-  return pool.query(queryString, values)
-    .then(res => {
-      return res.rows[0];
-    });
+  const queryParams = [user.name, user.email, user.password];
+  return pool.query(queryString, queryParams)
+    .then(res => res.rows[0]);
 }
 exports.addUser = addUser;
 
@@ -91,12 +82,9 @@ const getAllReservations = function(guest_id, limit = 10) {
     ORDER BY start_date
     LIMIT $2;
     `;
-  const values = [guest_id, limit]
-  return pool.query(queryString, values)
-    .then(res => {
-      console.log(res.rows);
-      return res.rows ? res.rows : null;
-    });
+  const queryParams = [guest_id, limit];
+  return pool.query(queryString, queryParams)
+    .then(res => res.rows);
 }
 exports.getAllReservations = getAllReservations;
 
@@ -109,16 +97,70 @@ exports.getAllReservations = getAllReservations;
  * @return {Promise<[{}]>}  A promise to the properties.
  */
 const getAllProperties = (options, limit = 10) => {
-  console.log(options);
-  const queryString = `
+  const queryParams = [];
+  let queryString = `
   SELECT properties.*, avg(property_reviews.rating) as average_rating
   FROM properties
   JOIN property_reviews ON properties.id = property_id
-  GROUP BY properties.id
-  LIMIT $1;
+  `;
+  //city
+  if (options.city) {
+    queryParams.push(`%${options.city}%`);
+    queryString += `WHERE city LIKE $${queryParams.length}
     `;
-  const values = [limit]
-  return pool.query(queryString, values)
+  }
+  //owner
+  if (options.owner_id) {
+    if (queryString.includes('WHERE')) {
+      queryString += 'AND '
+    } else {
+      queryString += 'WHERE '
+    }
+    queryParams.push(options.owner_id);
+    queryString += `properties.owner_id = $${queryParams.length}
+    `;
+  }
+  //minimum price
+  if (options.minimum_price_per_night) {
+    if (queryString.includes('WHERE')) {
+      queryString += 'AND '
+    } else {
+      queryString += 'WHERE '
+    }
+    queryParams.push(options.minimum_price_per_night * 100);
+    queryString += `properties.cost_per_night >= $${queryParams.length}
+    `;
+  }
+
+  //max price
+  if (options.maximum_price_per_night) {
+    if (queryString.includes('WHERE')) {
+      queryString += 'AND '
+    } else {
+      queryString += 'WHERE '
+    }
+    queryParams.push(options.maximum_price_per_night * 100);
+    queryString += `properties.cost_per_night <= $${queryParams.length}
+    `;
+  }
+
+  queryString += `
+  GROUP BY properties.id
+  `
+
+  // minimum rating
+  if (options.minimum_rating) {
+    queryParams.push(options.minimum_rating);
+    queryString += `HAVING avg(property_reviews.rating) >= $${queryParams.length}
+    `;
+  }
+
+  queryParams.push(limit);
+  queryString += `ORDER BY cost_per_night
+  LIMIT $${queryParams.length};
+  `;
+
+  return pool.query(queryString, queryParams)
     .then(res => res.rows);
 }
 exports.getAllProperties = getAllProperties;
