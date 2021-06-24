@@ -1,13 +1,7 @@
-const properties = require('./json/properties.json');
-const users = require('./json/users.json');
-const { Pool } = require('pg');
+const properties = require('../json/properties.json');
+const users = require('../json/users.json');
+const db = require('./index');
 
-const pool = new Pool({
-  user: 'vagrant',
-  password: '123',
-  host: 'localhost',
-  database: 'lightbnb'
-});
 /// Users
 
 /**
@@ -22,8 +16,7 @@ const getUserWithEmail = function(email) {
     WHERE email = $1;
     `;
   const queryParams = [email];
-  return pool.query(queryString, queryParams)
-    .then(res => res.rows[0]);
+  return db.query(queryString, queryParams, 1);
 }
 exports.getUserWithEmail = getUserWithEmail;
 
@@ -39,8 +32,7 @@ const getUserWithId = function(id) {
     WHERE id = $1;
     `;
   const queryParams = [id];
-  return pool.query(queryString, queryParams)
-    .then(res => res.rows[0]);
+  return db.query(queryString, queryParams, 1);
 }
 exports.getUserWithId = getUserWithId;
 
@@ -58,8 +50,7 @@ const addUser = function(user) {
     RETURNING *;
     `;
   const queryParams = [user.name, user.email, user.password];
-  return pool.query(queryString, queryParams)
-    .then(res => res.rows[0]);
+  return db.query(queryString, queryParams, 1);
 }
 exports.addUser = addUser;
 
@@ -83,8 +74,7 @@ const getAllReservations = function(guest_id, limit = 10) {
     LIMIT $2;
     `;
   const queryParams = [guest_id, limit];
-  return pool.query(queryString, queryParams)
-    .then(res => res.rows);
+  return db.query(queryString, queryParams, 0);
 }
 exports.getAllReservations = getAllReservations;
 
@@ -160,8 +150,7 @@ const getAllProperties = (options, limit = 10) => {
   LIMIT $${queryParams.length};
   `;
 
-  return pool.query(queryString, queryParams)
-    .then(res => res.rows);
+  return db.query(queryString, queryParams, 0);
 }
 exports.getAllProperties = getAllProperties;
 
@@ -244,7 +233,6 @@ const addProperty = function(property) {
   queryString = queryString.substr(0, queryString.length - 2);
   queryString += `)
   RETURNING *;`;
-  return pool.query(queryString, queryParams)
-    .then(res => res.rows[0]);
+  return db.query(queryString, queryParams, 1);
 }
 exports.addProperty = addProperty;
